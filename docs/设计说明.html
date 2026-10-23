@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>作业二｜经营诊断对话主链路设计说明</title>
+<style>
+@page{size:A4;margin:13mm 15mm}*{box-sizing:border-box}body{margin:0;color:#222;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:11.5px;line-height:1.5}main{max-width:900px;margin:auto}.eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;color:#e1251b}h1{font-size:26px;line-height:1.22;margin:9px 0 7px}h2{font-size:13px;line-height:1.3;margin:19px 0 7px;border-left:3px solid #e1251b;padding-left:7px}.lead{font-size:12px;color:#555;margin:0 0 13px}.scope{background:#f6f7f9;border:1px solid #e5e7eb;padding:9px 11px;border-radius:5px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 17px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.flow div{border:1px solid #e5e7eb;border-radius:5px;padding:7px 8px;min-height:49px}.flow b{display:block;color:#e1251b}.flow span{color:#555}.small{color:#777}.rule{display:grid;grid-template-columns:77px 1fr;border-bottom:1px solid #e9eaed;padding:5px 0}.rule strong{color:#222}.rule span{color:#555}.note{background:#fff2f0;border-left:3px solid #e1251b;padding:8px 10px;margin-top:10px}p{margin:4px 0 6px}ul{padding-left:16px;margin:5px 0}li{margin:3px 0}footer{margin-top:13px;padding-top:8px;border-top:1px solid #ddd;color:#777;font-size:9px}@media screen{body{background:#eee;padding:24px}main{background:#fff;min-height:297mm;padding:13mm 15mm;box-shadow:0 5px 24px #0002}}@media print{main{padding:0;max-width:none}h2{break-after:avoid}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">DATA AGENT · ASSIGNMENT 02 · PRODUCT DESIGN NOTE</div>
+<h1>经营诊断对话主链路</h1>
+<p class="lead">中小商家店长 · 2026-11-14（11.11 后第 3 天）· 商智 App 为主，PC 辅助 · 固定问题：「大促后流量掉了，是正常回落还是有问题？」</p>
+<div class="scope"><strong>设计目标：</strong>在单次诊断里让店长先确认查什么，再看阶段过程、可追溯结论与有边界的下一步。示例结论为下降 4,000 人中 75% 属于参考预期回落、25% 为额外缺口；渠道贡献不是因果归因。所有数值与外部动作均为 Mock。</div>
+<h2>8 屏闭环与关键交互</h2>
+<div class="flow">
+<div><b>S1 入口</b><span>3 条店铺数据驱动问法</span></div><div><b>S2 查询计划</b><span>指标、日期、基线、维度可核对</span></div><div><b>S3 执行中</b><span>分步 Trace、阶段发现、中断</span></div><div><b>S4 结论</b><span>一句话、贡献排序、影响／成本排序</span></div>
+<div><b>S5 证据</b><span>六要素、双口径比对</span></div><div><b>S6 低置信度</b><span>指出未知、换口径／人工接管</span></div><div><b>S7 受控写</b><span>二次确认、模拟审批与撤销</span></div><div><b>S8 复用</b><span>本机 Skill 卡、模拟订阅</span></div>
+</div>
+<div class="grid">
+<section><h2>工具集与权限边界</h2><div class="rule"><strong>只读工具</strong><span>get_metric_def、query_metric、drill_dimension、run_attribution、get_evidence_card、propose_action。页面展示的是本地确定性工具结果，不连接真实数仓。</span></div><div class="rule"><strong>受控操作</strong><span>预算由 ¥300／天申请至 ¥350／天 × 2 天，新增上限 ¥100；显示影响、风险、审批单号及撤销路径。二次确认后仅进入 Mock 待审批，不执行实际调整。</span></div><div class="rule"><strong>留痕</strong><span>每步记录任务 ID、工具、状态、错误码、指标版本与输入条件；失败接管包携带原问、计划、已完成步骤和待核事项。</span></div></section>
+<section><h2>上下文取舍与证据</h2><div class="rule"><strong>保留</strong><span>当前店铺与日期、原问题、指标 ID／版本、对比基线、下钻维度、已完成工具步骤、证据 ID、人工接管原因。</span></div><div class="rule"><strong>不保留</strong><span>无关历史对话、未授权店铺、个人级用户数据；不把上一口径的数值搬到新口径。</span></div><div class="rule"><strong>证据卡</strong><span>明确展示指标 ID、口径版本、时间窗、来源、血缘、取数时间；店铺 UV 与商品详情页 UV 并排比较，后者缺少日值时不冒用 6,000。</span></div></section>
+</div>
+<div class="grid">
+<section><h2>停止条件与护栏</h2><ul><li>计划条件超出演示数据、数据缺失、指标版本冲突、步骤超时 → 停止最终归因；保留已知部分，明确未知，不生成貌似完整的贡献排序。</li><li>用户可中断，恢复沿原任务进度；只读诊断不会改预算。高影响动作要求二次确认与审批，未获批准不执行。</li></ul></section>
+<section><h2>失败态与产品衡量</h2><ul><li>S6 给出「改口径／改计划」和「转人工」两个出口；接管不是自动修复，超时可重试，冲突需数据负责人确定权威版本。</li><li>可追溯性：结论能回到证据卡与 Trace；人工介入率：低置信度场景是否被正确引导至接管，不能把本地模拟值当作线上 KPI。</li></ul></section>
+</div>
+<div class="note"><strong>演示边界：</strong>11.14 店铺 UV 6,000、参考预期 7,000；付费广告缺口 500、自然 250、老客 200、活动 50。基线为课程示例，不是真实预测。Skill 仅写入本机浏览器；无后台巡检、通知或真实审批。</div>
+<footer>依据作业二开发任务书；立项书仅用于「结论可追溯／人工介入」等设计目标参考，不把作业一的跨品类人群机会范围混入本次原型。2026-10-23</footer>
+</main></body></html>
