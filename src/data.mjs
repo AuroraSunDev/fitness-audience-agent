@@ -14,7 +14,7 @@ export const metricDefinitions = Object.freeze({
     name: '商品详情页去重访客 UV', version: 'v1.0',
     definition: '北京时间自然日内访问商品详情页的去重访客；统计范围是详情页，不等于店铺访客。',
     source: 'mock_product_detail_definition',
-    lineage: '商品详情页访问 → 页面级去重 UV；演示数据未提供完整渠道下钻'
+    lineage: '商品详情页访问 → 页面级去重 UV；当前渠道明细尚不完整'
   }
 });
 
@@ -62,11 +62,11 @@ export function getSuggestedQuestions(fixture) {
 }
 
 export function validatePlan(plan) {
-  if (plan.shop !== defaultPlan.shop) return '当前演示只支持动燃健身旗舰店。';
-  if (plan.date !== defaultPlan.date || plan.peakDate !== defaultPlan.peakDate) return '当前演示数据仅覆盖 2026-11-14 与 11.11 峰值对比。';
-  if (plan.baseline !== 'similar_campaign') return '当前演示仅提供历史相似活动参考基线。';
-  if (!['primary_source', 'paid_only'].includes(plan.dimension)) return '当前演示仅支持主来源渠道或仅看付费广告。';
-  if (!metricDefinitions[plan.metricId]) return '当前演示不支持这个指标。';
+  if (plan.shop !== defaultPlan.shop) return '当前账号只能查看动燃健身旗舰店。';
+  if (plan.date !== defaultPlan.date || plan.peakDate !== defaultPlan.peakDate) return '当前可用数据为 2026-11-14 与 11.11 峰值对比，请选择有数据的日期。';
+  if (plan.baseline !== 'similar_campaign') return '当前可用基线为历史相似活动参考预期。';
+  if (!['primary_source', 'paid_only'].includes(plan.dimension)) return '请选择主来源渠道或付费广告渠道。';
+  if (!metricDefinitions[plan.metricId]) return '该指标暂无可用数据。';
   if (plan.readOnly !== true) return '诊断查询只能以只读方式执行。';
   return null;
 }
@@ -75,7 +75,7 @@ export function analyzeTraffic(fixture, plan) {
   const unsupported = validatePlan(plan);
   if (unsupported) return { status: 'unsupported', reason: unsupported };
   if (plan.metricId !== 'SHOP_UV_001') return {
-    status: 'low_evidence', reason: '当前演示只有商品详情页 UV 的口径定义，没有可比的日值与渠道下钻。',
+    status: 'low_evidence', reason: '商品详情页 UV 缺少可比的日值与渠道明细。',
     known: '商品详情页 UV 与店铺 UV 统计范围不同，不能直接沿用店铺的 6,000 人。',
     uncertain: '该口径的实际值、历史预期及渠道贡献均未提供。'
   };

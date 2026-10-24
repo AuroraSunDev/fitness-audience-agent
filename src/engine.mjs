@@ -57,7 +57,7 @@ export class DiagnosticTask {
       const unsupported = validatePlan(this.plan);
       if (unsupported) {
         this.record('get_metric_def', 'error', 'unsupported');
-        this.stop('unsupported', unsupported, '查询尚未执行。', '当前条件不在 Mock 数据覆盖范围。');
+        this.stop('unsupported', unsupported, '查询尚未执行。', '当前条件暂无可用数据。');
         return false;
       }
       this.record('get_metric_def', 'success');
@@ -94,7 +94,7 @@ export class DiagnosticTask {
     if (this.stepIndex === 2) {
       if (this.fixture.scenario === 'timeout') {
         this.record('run_attribution', 'timeout', 'mock_timeout');
-        this.stop('timeout', '贡献计算达到演示时限，任务已停止。',
+        this.stop('timeout', '渠道贡献计算超时，任务已停止。',
           '已确认店铺 UV 下降 4,000 人，且付费广告低于参考预期 500 人。',
           '完整渠道贡献与证据校验尚未完成，不能输出最终排序。');
         return false;

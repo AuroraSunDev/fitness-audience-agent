@@ -32,7 +32,7 @@ export function shouldSuppressRecommendation(feedback, alert, reportDate) {
 
 export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DOMAINS, feedback = [] } = {}) {
   const day = getRadarDay(date, scenario);
-  if (!day) return { status: 'unsupported', date, reason: '该日期不在教学 Mock 数据范围；不会复用其他日期的结论。' };
+  if (!day) return { status: 'unsupported', date, reason: '该日期暂无可用数据，请选择其他日期。' };
   const selected = [...new Set(domains)].filter(domain => RADAR_DOMAINS.includes(domain));
   if (!selected.length) return { status: 'unsupported', date, reason: '至少选择一个巡检维度。' };
   const metrics = {};

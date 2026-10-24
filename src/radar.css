@@ -1,7 +1,7 @@
-.product-tabs{position:sticky;top:98px;z-index:18;display:grid;grid-template-columns:1fr 1fr;background:#fff;border-bottom:1px solid var(--line);padding:0 18px}
+.product-tabs{position:sticky;top:58px;z-index:18;display:grid;grid-template-columns:1fr 1fr;background:#fff;border-bottom:1px solid var(--line);padding:0 18px}
 .product-tabs button{border:0;border-bottom:3px solid transparent;background:#fff;color:#697380;font-size:13px;font-weight:700;padding:12px 4px 10px}
 .product-tabs button.active{color:var(--red);border-bottom-color:var(--red)}
-.radar-screen{min-height:calc(100vh - 140px);padding:24px 19px 95px;overflow-wrap:anywhere}
+.radar-screen{min-height:calc(100vh - 101px);padding:24px 19px 95px;overflow-wrap:anywhere}
 .radar-screen h1{font-size:27px;line-height:1.26;letter-spacing:-.035em;margin:8px 0 12px}
 .radar-screen h2{font-size:16px;margin:0}
 .radar-screen p{line-height:1.55}
@@ -51,6 +51,8 @@
 .radar-summary{background:#fff5f3;border-left:3px solid var(--red);border-radius:0 9px 9px 0;padding:14px 15px;margin:18px 0}
 .radar-summary span{font-size:11px;color:var(--red);font-weight:800}
 .radar-summary p{font-size:15px;font-weight:690;margin:7px 0 0;color:#27313d}
+.radar-summary h2{font-size:16px;line-height:1.4;margin:7px 0 0}
+.radar-summary h2+p{font-size:12px;line-height:1.65;font-weight:500;color:#64717e;margin-top:7px}
 .radar-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .radar-kpi{min-width:0;text-align:left;border:1px solid #e0e5eb;border-radius:10px;background:#fff;padding:13px 12px;display:flex;flex-direction:column;gap:5px}
 .radar-kpi.active{border-color:#e9847c;box-shadow:0 0 0 2px #fff3f1}
@@ -105,4 +107,31 @@
 .radar-bottom-nav{position:fixed;z-index:17;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,430px);display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid #e7e9ed;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -6px 17px #ffffffcc}
 .radar-bottom-nav button{border:0;background:#fff;color:#82909e;font-size:11px;font-weight:700;padding:13px 2px}
 .radar-bottom-nav button.active{color:var(--red)}
+.rail-main,.rail-subnav{display:grid;gap:5px;margin:24px 0}
+.rail-main button,.rail-subnav button{border:0;background:transparent;text-align:left;padding:12px 14px;border-radius:8px;color:#637080;font-size:13px}
+.rail-main button.active{background:#fff;color:var(--red);font-weight:750;box-shadow:0 3px 12px #dce0e5}
+.rail-subnav{padding-left:14px;margin-top:-10px}
+.rail-subnav button{font-size:12px;padding:10px 14px}
+.rail-subnav button.active{color:var(--red);font-weight:700}
+.radar-shop{margin:0 0 7px;color:#65717f;font-size:12px;font-weight:650}
+.radar-report-heading h1{font-size:28px;margin:0 0 14px}
+.radar-report-meta{display:flex;align-items:center;gap:10px;font-size:10px;color:#87919d;margin-bottom:19px}
+.radar-date-button{background:#f4f5f7;border:0;padding:7px 9px;border-radius:6px;font-size:11px;font-weight:700;color:#384657}
+.radar-date-button span{padding-left:9px;color:#8a939e}
+.radar-refresh{margin-left:auto;border:0;background:transparent;color:#717e8b;font-size:22px;min-width:32px;min-height:32px}
+.radar-subscription-strip{display:flex;align-items:center;gap:10px;padding:12px;background:#f7f8fa;border-radius:9px;margin:0 0 16px}
+.radar-subscription-strip>div{flex:1;min-width:0}
+.radar-subscription-strip strong{display:block;font-size:12px}
+.radar-subscription-strip small{display:block;font-size:10px;color:#8b96a2;line-height:1.5;margin-top:4px}
+.radar-subscription-strip button{border:0;background:transparent;white-space:nowrap;color:var(--red);font-size:11px;font-weight:750;padding:8px 0}
+.radar-todo-entry{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;border:1px solid #e4e8ed;border-radius:10px;background:#fff;text-align:left;padding:14px;margin:20px 0}
+.radar-todo-entry strong{display:block;font-size:14px;color:#27313d}
+.radar-todo-entry small{display:block;font-size:11px;color:#8b95a1;margin-top:5px}
+.radar-todo-entry b{font-size:11px;color:var(--red)}
+.radar-history-item b{font-size:11px;color:var(--red);margin-top:7px}
+.radar-pause{display:block;margin:12px auto 0;color:#7c8793;font-weight:500}
+.radar-form fieldset{margin-top:0;border-top:0;padding-top:0}
+.radar-screen .radar-detail{background:#fff;margin-bottom:20px}
+.radar-screen .radar-detail+.radar-btn{width:100%}
+.screen{min-height:calc(100vh - 101px)}
 @media(max-width:375px){.radar-screen{padding-left:15px;padding-right:15px}.radar-kpi strong{font-size:18px}.radar-line{grid-template-columns:86px minmax(0,1fr)}.radar-task-form{grid-template-columns:90px minmax(0,1fr)}}
