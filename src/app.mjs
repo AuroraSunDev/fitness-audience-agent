@@ -1,24 +1,24 @@
 import { analyzeTraffic, buildEvidence, defaultPlan, getFixture, getSuggestedQuestions, metricDefinitions, validatePlan } from './data.mjs';
 import { ApprovalFlow, DiagnosticTask, steps } from './engine.mjs';
+import { RadarUI } from './radar-ui.mjs';
 
 const root = document.getElementById('app');
 const number = value => Number(value).toLocaleString('zh-CN');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const initialSkill = {
-  name: '大促后流量异常巡检', version: 'v1.0', shop: defaultPlan.shop,
-  metricId: 'SHOP_UV_001', baseline: '历史相似活动参考预期', threshold: '低于预期 10%',
-  frequency: 'daily', notification: 'App 站内消息', failurePolicy: '缺数或冲突时转人工复核',
-  readOnly: true, enabled: false, saved: false
-};
-let storedSkill = null;
-try { storedSkill = JSON.parse(localStorage.getItem('merchant-diagnosis-skill-v1') || 'null'); } catch { /* invalid local demo state is ignored */ }
 const state = {
-  screen: 's1', scenario: 'normal', question: '', plan: { ...defaultPlan },
+  section: 'diagnosis', screen: 's1', scenario: 'normal', question: '', plan: { ...defaultPlan },
   editingPlan: false, notice: '', task: null, approval: new ApprovalFlow(),
-  handoff: null, skill: { ...initialSkill, ...(storedSkill || {}) }
+  handoff: null, sourceAlertId: null
 };
 let tickTimer = null;
 let lastRenderedScreen = null;
+const radar = new RadarUI(localStorage, render, source => {
+  state.section = 'diagnosis'; state.screen = 's2'; state.plan = { ...defaultPlan, date: source.date, metricId: source.metricId };
+  state.sourceAlertId = source.alertId;
+  state.notice = `来自每日巡检告警 ${source.alertId}；请确认作业二查询计划。`;
+  state.editingPlan = false;
+  render();
+});
 
 function icon(name) {
   const paths = {
@@ -38,7 +38,7 @@ function icon(name) {
 
 function chrome(title, back = false) {
   return `<header class="topbar"><div class="topbar-left">${back ? `<button class="icon-button" data-action="back" aria-label="返回">${icon('back')}</button>` : '<span class="brand-mark"></span>'}<strong>${esc(title)}</strong></div><span class="topbar-right">商智 App · 原型</span></header>
-    <div class="demo-bar"><span><span class="demo-dot"></span>教学演示 · Mock 数据</span><label>场景 <select data-testid="scenario" name="scenario" aria-label="切换演示场景"><option value="normal" ${state.scenario === 'normal' ? 'selected' : ''}>正常</option><option value="missing-data" ${state.scenario === 'missing-data' ? 'selected' : ''}>缺数</option><option value="metric-conflict" ${state.scenario === 'metric-conflict' ? 'selected' : ''}>口径冲突</option><option value="timeout" ${state.scenario === 'timeout' ? 'selected' : ''}>超时</option></select></label></div>`;
+    <div class="demo-bar"><span><span class="demo-dot"></span>教学演示 · Mock 数据</span>${state.section === 'diagnosis' ? `<label>场景 <select data-testid="scenario" name="scenario" aria-label="切换演示场景"><option value="normal" ${state.scenario === 'normal' ? 'selected' : ''}>正常</option><option value="missing-data" ${state.scenario === 'missing-data' ? 'selected' : ''}>缺数</option><option value="metric-conflict" ${state.scenario === 'metric-conflict' ? 'selected' : ''}>口径冲突</option><option value="timeout" ${state.scenario === 'timeout' ? 'selected' : ''}>超时</option></select></label>` : '<strong>本机模拟 · 非真实服务</strong>'}</div>`;
 }
 
 function scopeLine() {
@@ -73,6 +73,7 @@ function renderS2() {
   return `<section data-screen="s2" class="screen">
     <p class="step-label">01 / 查询计划</p><h1>先确认，我准备查什么</h1><p class="sublead">执行前可修改支持的条件；不支持的数据不会沿用旧结果。</p>
     ${scopeLine()}
+    ${state.sourceAlertId ? `<p class="inline-note">来源：每日巡检告警 ${esc(state.sourceAlertId)} · 返回可点顶部「每日巡检」</p>` : ''}
     <div class="section-head"><h2>本次查询计划</h2><button class="text-button" data-action="edit-plan">${editing ? '完成修改' : '修改计划'}</button></div>
     <div class="plan-list">
       ${planRow('分析指标', editing ? `<select name="metricId" aria-label="分析指标"><option value="SHOP_UV_001" ${plan.metricId === 'SHOP_UV_001' ? 'selected' : ''}>店铺去重访客 UV</option><option value="PRODUCT_DETAIL_UV_002" ${plan.metricId === 'PRODUCT_DETAIL_UV_002' ? 'selected' : ''}>商品详情页 UV</option></select>` : esc(metricDefinitions[plan.metricId]?.name || plan.metricId), '指标 ID：' + esc(plan.metricId))}
@@ -170,31 +171,24 @@ function renderS7() {
   </section>`;
 }
 
-function nextRun() { return state.skill.frequency === 'daily' ? '2026-11-15 09:00 北京时间（演示）' : '2026-11-21 09:00 北京时间（演示）'; }
 function renderS8() {
-  const skill = state.skill;
+  const skill = radar.memory.config;
   return `<section data-screen="s8" class="screen">
-    <p class="step-label">06 / 沉淀与复用</p><h1>把这次诊断，存成巡检。</h1><p class="sublead">仅保存到当前浏览器；不创建真实后台任务，也不会发送通知。</p>
-    <div class="skill-card"><div class="skill-card-top"><span class="skill-icon">${icon('clock')}</span><span>${esc(skill.version)} · ${skill.saved ? '已保存' : '未保存'}</span></div>
-      <label class="field">Skill 名称<input name="skill-name" maxlength="36" value="${esc(skill.name)}"></label>
-      ${evidenceField('适用店铺', skill.shop)}${evidenceField('监控指标', `${skill.metricId} · 店铺 UV`)}${evidenceField('对比基线', skill.baseline)}${evidenceField('异常触发条件', skill.threshold)}${evidenceField('权限范围', '当前店铺 · 只读')}
-      <label class="field">巡检频率<select name="frequency"><option value="daily" ${skill.frequency === 'daily' ? 'selected' : ''}>每日 09:00</option><option value="weekly" ${skill.frequency === 'weekly' ? 'selected' : ''}>每周六 09:00</option></select></label>
-      <label class="field">结果通知<select name="notification"><option ${skill.notification === 'App 站内消息' ? 'selected' : ''}>App 站内消息</option><option ${skill.notification === '仅在本机记录（演示）' ? 'selected' : ''}>仅在本机记录（演示）</option></select></label>
-      ${evidenceField('失败 / 人工复核', skill.failurePolicy)}
-      <div class="subscribe-row"><div><strong>模拟开启订阅</strong><small>仅改变本机展示状态</small></div><button class="switch ${skill.enabled ? 'on' : ''}" data-action="toggle-subscription" role="switch" aria-checked="${skill.enabled}" aria-label="模拟开启订阅"><span></span></button></div>
+    <p class="step-label">06 / 沉淀与复用</p><h1>把诊断经验，交给每日巡检。</h1><p class="sublead">作业二的 S8 作为同一项「每日经营巡检」Skill 的入口。扩展监控范围后，旧订阅不会自动启用。</p>
+    <div class="skill-card"><div class="skill-card-top"><span class="skill-icon">${icon('clock')}</span><span>${esc(skill.version)} · ${skill.enabled ? '模拟启用' : skill.saved ? '已保存未启用' : '未保存'}</span></div>
+      ${evidenceField('Skill 名称', skill.name)}${evidenceField('适用店铺', defaultPlan.shop)}${evidenceField('监控维度', skill.domains.map(id => ({traffic:'流量',audience:'用户',transaction:'交易',ranking:'排名'})[id]).join(' / '))}${evidenceField('权限范围', '当前店铺 · 只读')}${evidenceField('运行方式', '仅本机手动/模拟到点；无真实后台')}
     </div>
-    <div class="next-run"><span>下次计划执行</span><strong>${skill.enabled && skill.saved ? nextRun() : '未启用'}</strong></div>
-    ${state.notice ? `<p class="inline-note" role="status">${esc(state.notice)}</p>` : ''}
-    ${footer(button(skill.saved ? '更新 Skill 配置' : '保存为 Skill 卡', 'save-skill'))}
+    ${footer(button('打开每日巡检 Skill 设置', 'open-radar-skill'))}
   </section>`;
 }
 
 function render() {
-  const title = state.screen === 's1' ? '商策 · 经营诊断' : '商策 · 经营诊断';
+  const title = state.section === 'radar' ? '商策 · 每日巡检' : '商策 · 经营诊断';
   const screens = { s1: renderS1, s2: renderS2, s3: renderS3, s4: renderS4, s5: renderS5, s6: renderS6, s7: renderS7, s8: renderS8 };
-  root.innerHTML = `<div class="app-shell"><aside class="desktop-rail"><div class="rail-brand"><span class="brand-mark"></span>商策</div><p>经营诊断 Agent</p><div class="rail-scope">一个问题 · 八个状态<br>大促后流量是否异常</div><ol>${['入口与建议问法', '查询计划确认', '分步执行', '结论与动作', '证据卡展开', '低置信度', '写操作确认', '技能沉淀'].map((label, i) => `<li class="${state.screen === `s${i + 1}` ? 'active' : ''}"><span>S${i + 1}</span>${label}</li>`).join('')}</ol><small>教学演示 · 不连接真实商家服务</small></aside><div class="phone-surface">${chrome(title, state.screen !== 's1')}<main>${screens[state.screen]()}</main></div></div>`;
-  if (lastRenderedScreen !== state.screen) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  lastRenderedScreen = state.screen;
+  root.innerHTML = `<div class="app-shell"><aside class="desktop-rail"><div class="rail-brand"><span class="brand-mark"></span>商策</div><p>${state.section === 'radar' ? '每日经营巡检' : '经营诊断 Agent'}</p><div class="rail-scope">统一商家经营分析原型<br>作业二诊断 · 作业三巡检</div>${state.section === 'diagnosis' ? `<ol>${['入口与建议问法', '查询计划确认', '分步执行', '结论与动作', '证据卡展开', '低置信度', '写操作确认', '技能沉淀'].map((label, i) => `<li class="${state.screen === `s${i + 1}` ? 'active' : ''}"><span>S${i + 1}</span>${label}</li>`).join('')}</ol>` : '<p>Skill → 模拟执行 → 报告 → 反馈 → 治理</p>'}<small>教学演示 · 不连接真实商家服务</small></aside><div class="phone-surface">${chrome(title, state.section === 'diagnosis' && state.screen !== 's1')}<nav class="product-tabs" aria-label="商策产品导航"><button data-product="diagnosis" class="${state.section === 'diagnosis' ? 'active' : ''}">经营诊断</button><button data-product="radar" class="${state.section === 'radar' ? 'active' : ''}">每日巡检</button></nav><main>${state.section === 'radar' ? radar.render() : screens[state.screen]()}</main></div></div>`;
+  const renderedScreen = state.section === 'radar' ? `radar-${radar.page}` : state.screen;
+  if (lastRenderedScreen !== renderedScreen) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  lastRenderedScreen = renderedScreen;
 }
 
 function scheduleTick() {
@@ -221,11 +215,15 @@ function startTask() {
 }
 
 root.addEventListener('click', event => {
+  const product = event.target.closest('[data-product]')?.dataset.product;
+  if (product) { state.section = product; state.notice = ''; render(); return; }
+  const radarAction = event.target.closest('[data-radar]');
+  if (state.section === 'radar' && radarAction) { radar.handle(radarAction.dataset.radar, root, radarAction); return; }
   const action = event.target.closest('[data-action]')?.dataset.action;
   if (!action) return;
   if (action.startsWith('question-')) {
     state.question = getSuggestedQuestions(getFixture(state.scenario))[Number(action.split('-')[1])];
-    state.screen = 's2'; state.notice = '';
+    state.screen = 's2'; state.notice = ''; state.sourceAlertId = null;
   } else if (action === 'edit-plan') {
     state.editingPlan = !state.editingPlan; state.notice = '';
   } else if (action === 'confirm-plan') {
@@ -253,13 +251,8 @@ root.addEventListener('click', event => {
   else if (action === 'approve-demo') state.approval.approveDemo();
   else if (action === 'reject-demo') state.approval.rejectDemo();
   else if (action === 'skill') { state.screen = 's8'; state.notice = ''; }
-  else if (action === 'toggle-subscription') {
-    if (!state.skill.saved) state.notice = '请先保存 Skill，再模拟开启订阅。';
-    else { state.skill.enabled = !state.skill.enabled; persistSkill(); state.notice = state.skill.enabled ? '模拟订阅已开启；无真实后台巡检。' : '模拟订阅已关闭。'; }
-  } else if (action === 'save-skill') {
-    state.skill.name = root.querySelector('[name="skill-name"]')?.value.trim() || initialSkill.name;
-    state.skill.saved = true; persistSkill(); state.notice = 'Skill 已保存到本机浏览器（教学演示）。';
-  } else if (action === 'back') {
+  else if (action === 'open-radar-skill') { state.section = 'radar'; radar.page = 'skill'; }
+  else if (action === 'back') {
     if (state.screen === 's3') { clearTimeout(tickTimer); state.task?.interrupt(); state.screen = 's2'; }
     else if (['s5', 's7', 's8'].includes(state.screen)) state.screen = 's4';
     else if (state.screen === 's6') state.screen = 's2';
@@ -268,24 +261,17 @@ root.addEventListener('click', event => {
   render();
 });
 
-function persistSkill() { localStorage.setItem('merchant-diagnosis-skill-v1', JSON.stringify(state.skill)); }
-
 root.addEventListener('change', event => {
+  if (state.section === 'radar' && radar.onChange(event.target, root)) return;
   const { name, value } = event.target;
   if (name === 'scenario') {
     clearTimeout(tickTimer);
     state.scenario = value; state.screen = 's1'; state.plan = { ...defaultPlan };
     state.question = ''; state.task = null; state.approval = new ApprovalFlow();
-    state.handoff = null; state.notice = ''; state.editingPlan = false;
+    state.handoff = null; state.notice = ''; state.editingPlan = false; state.sourceAlertId = null;
   } else if (['metricId', 'date', 'dimension'].includes(name)) {
     state.plan[name] = value;
     state.notice = validatePlan(state.plan) || '计划已更新；执行后将按当前选择重新取数。';
-  } else if (name === 'frequency' || name === 'notification') {
-    state.skill[name] = value;
-    state.skill.saved = false;
-    state.skill.enabled = false;
-    persistSkill();
-    state.notice = '配置已修改，原模拟订阅已关闭；请重新保存后再开启。';
   } else return;
   render();
 });
