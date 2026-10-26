@@ -1,5 +1,7 @@
 # Codex 施工任务书｜作业三「每日经营巡检」Skill + 交互式 HTML 报告
 
+> 历史初版（2026-10-24）。已实施方案以 [2026-10-26 施工计划](superpowers/plans/2026-10-26-daily-inspection-service.md) 和 [每日巡检设计说明](assignment-3/设计说明.md) 为准；旧文中的商家页面教学提示、S8 自动扩展全店巡检等要求不再适用。
+
 > **直接交给 Codex 执行**。请先阅读同目录 `作业三_每日经营巡检Skill_产品方案.md`，将其作为业务需求与口径依据。本任务书是具体执行约束与验收标准。  
 > 目标仓库：`https://github.com/AuroraSunDev/fitness-audience-agent`  
 > 日期：2026-10-24  

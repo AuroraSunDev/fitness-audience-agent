@@ -51,12 +51,16 @@ export function getFixture(name = 'normal') {
 
 export function getSuggestedQuestions(fixture) {
   const expectedGap = fixture.expected - fixture.actual;
+  const paid = fixture.channels.find(channel => channel.id === 'paid');
+  const paidQuestion = fixture.scenario === 'metric-conflict' ? '付费广告流量是否异常？先核对统计口径。'
+    : paid?.actual == null ? '付费广告数据不完整，判断流量还缺哪些依据？'
+      : `付费广告访客仅 ${paid.actual.toLocaleString('zh-CN')}，比参考预期少 ${(paid.expected - paid.actual).toLocaleString('zh-CN')}，先检查什么？`;
   const gapQuestion = fixture.scenario === 'metric-conflict'
     ? '哪些渠道造成了大促后超出预期的流量下降？先核对 UV 口径。'
     : `哪些渠道造成了大促后超出预期的 ${expectedGap.toLocaleString('zh-CN')} 名访客缺口？`;
   return [
     '大促后流量掉了，是正常回落还是有问题？',
-    '付费广告流量低于参考预期，需要重点检查什么？',
+    paidQuestion,
     gapQuestion
   ];
 }

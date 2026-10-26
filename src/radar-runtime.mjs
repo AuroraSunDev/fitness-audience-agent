@@ -1,5 +1,6 @@
 import { RADAR_DOMAINS, RADAR_SHOP_ID } from './radar-data.mjs';
 import { buildRadarReport } from './radar-rules.mjs';
+import { queryTraffic, queryCustomers, queryTransactions, queryRanking } from './radar-tools.mjs';
 
 export const defaultRadarSkill = Object.freeze({
   id: 'daily-business-pulse', version: '1.0.0', shopId: RADAR_SHOP_ID,
@@ -13,7 +14,10 @@ const allowedHours = [8, 9, 10];
 const steps = [
   ['validate_config', '校验配置和店铺只读权限'],
   ['check_data_readiness', '检查昨日数据就绪'],
-  ['query_four_domains', '查询已选择的经营维度'],
+  ['query_traffic', '读取店铺访客与渠道'],
+  ['query_audience', '读取新访客与回访访客'],
+  ['query_transaction', '读取支付金额与买家'],
+  ['query_ranking', '读取同条件排名快照'],
   ['evaluate_anomalies', '执行确定性异常规则'],
   ['attach_evidence', '附加指标证据与来源'],
   ['build_report', '生成交互式日报'],
@@ -65,7 +69,7 @@ export function makeRunKey(config, date) {
 }
 
 export class RadarRun {
-  constructor(config, date, scenario = 'normal') {
+  constructor(config, date, scenario = 'normal', options = {}) {
     this.config = { ...config, domains: [...config.domains] };
     this.date = date;
     this.scenario = scenario;
@@ -76,6 +80,8 @@ export class RadarRun {
     this.report = null;
     this.notifications = [];
     this.mock = true;
+    this.snapshots = {};
+    this.options = options;
   }
 
   start() { if (this.status === 'scheduled_mock') this.status = 'running'; return this; }
@@ -92,14 +98,20 @@ export class RadarRun {
         this.status = 'failed';
       }
     }
-    if (id === 'query_four_domains' && this.scenario === 'timeout') {
+    if (id.startsWith('query_')) {
+      const domain = id.slice(6);
+      const reader = { traffic: queryTraffic, audience: queryCustomers, transaction: queryTransactions, ranking: queryRanking }[domain];
+      if (!this.config.domains.includes(domain)) entry.status = 'skipped';
+      else this.snapshots[domain] = reader({ date: this.date }, { shopId: this.config.shopId, scenario: this.scenario });
+    }
+    if (id === 'query_traffic' && this.scenario === 'timeout') {
       entry.status = 'failed'; entry.errorCode = 'MOCK_TIMEOUT'; this.status = 'failed';
     }
     if (id === 'build_report') {
-      this.report = buildRadarReport(this.date, { scenario: this.scenario, domains: this.config.domains });
+      this.report = buildRadarReport(this.date, { ...this.options, scenario: this.scenario, domains: this.config.domains, snapshots: this.snapshots });
       if (this.report.status === 'unsupported') { entry.status = 'failed'; entry.errorCode = 'MOCK_UNSUPPORTED_DATE'; this.status = 'failed'; this.report = null; }
     }
-    if (id === 'mock_notify' && this.report && this.config.notification !== 'none') {
+    if (id === 'mock_notify' && this.report && this.config.enabled && this.config.notification !== 'none') {
       if (this.config.notification === 'every_run' || this.report.alerts.length) this.notifications.push({ mock: true, channel: 'in_app_mock', date: this.date, message: `教学模拟提醒：${this.report.alerts.length} 项需查看` });
     }
     this.trace.push(entry);

@@ -30,16 +30,23 @@ test('fixed simulated clock calculates the next run without a real background sc
 });
 
 test('normal run has ordered trace and only one mock notification', () => {
-  const run = new RadarRun(saveRadarSkill(defaultRadarSkill), '2026-11-14');
+  const run = new RadarRun(enableRadarSkill(saveRadarSkill(defaultRadarSkill)), '2026-11-14');
   assert.equal(run.status, 'scheduled_mock');
   run.start();
   while (run.status === 'running') run.advance();
   assert.equal(run.status, 'completed');
-  assert.equal(run.trace.length, 8);
+  assert.equal(run.trace.length, 11);
   assert.equal(run.notifications.length, 1);
   assert.equal(run.report.metrics.traffic.actual, 6000);
   run.advance();
   assert.equal(run.notifications.length, 1);
+});
+
+test('manual report refresh without subscription does not generate a delivery',()=>{
+  const run=new RadarRun(saveRadarSkill(defaultRadarSkill),'2026-11-14');
+  run.start();while(run.status==='running')run.advance();
+  assert.equal(run.report.metrics.traffic.actual,6000);
+  assert.equal(run.notifications.length,0);
 });
 
 test('missing data is partial; timeout, interrupt and unauthorized never look completed', () => {

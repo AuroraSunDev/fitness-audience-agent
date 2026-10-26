@@ -37,11 +37,20 @@ const days = {
       previousConditions: '移动端·北京·自然搜索·10:00', currentConditions: '移动端·北京·自然搜索·10:00'
     }
   },
-  '2026-11-15': { actual: 6500, expected: 6900, channels: {
+  '2026-11-15': { actual: 6500, expected: 6900,
+    audience: { newVisitors: 4480, returningVisitors: 2020 },
+    transaction: { buyers: 208, orders: 208, gmv: 39520, aov: 190 },
+    ranking: { keyword: '普拉提弹力带', previous: 12, current: 10, previousAt: '2026-11-14 10:00 Asia/Shanghai', currentAt: '2026-11-15 10:00 Asia/Shanghai', previousConditions: '移动端·北京·自然搜索·10:00', currentConditions: '移动端·北京·自然搜索·10:00' },
+    channels: {
     paid: { actual: 1100, expected: 1250 }, campaign: { actual: 2050, expected: 2100 },
     organic: { actual: 2200, expected: 2300 }, returning_source: { actual: 1150, expected: 1250 }
   } },
-  '2026-11-16': { actual: 6800, expected: 6900 },
+  '2026-11-16': { actual: 6800, expected: 6900,
+    audience: { newVisitors: 4620, returningVisitors: 2180 },
+    transaction: { buyers: 231, orders: 231, gmv: 45045, aov: 195 },
+    ranking: { keyword: '普拉提弹力带', previous: 10, current: 8, previousAt: '2026-11-15 10:00 Asia/Shanghai', currentAt: '2026-11-16 10:00 Asia/Shanghai', previousConditions: '移动端·北京·自然搜索·10:00', currentConditions: '移动端·北京·自然搜索·10:00' },
+    channels: { paid: { actual: 1220, expected: 1250 }, campaign: { actual: 2090, expected: 2100 }, organic: { actual: 2260, expected: 2300 }, returning_source: { actual: 1230, expected: 1250 } }
+  },
   '2026-11-17': { actual: 7000, expected: 6900 }
 };
 
@@ -58,6 +67,7 @@ export function getRadarDay(date, scenario = 'normal') {
     quality: { traffic: 'complete', audience: row.audience ? 'complete' : 'unavailable', transaction: row.transaction ? 'complete' : 'unavailable', ranking: row.ranking ? 'complete' : 'unavailable' }
   };
   if (scenario === 'missing-data') { day.audience = null; day.quality.audience = 'missing'; }
+  if (scenario === 'missing-traffic') { day.traffic = null; day.quality.traffic = 'missing'; }
   if (scenario === 'metric-conflict') { day.quality.traffic = 'conflict'; day.traffic.conflictingActual = 6180; day.traffic.conflictingVersion = 'v0.9'; }
   if (scenario === 'rank-incomparable' && day.ranking) day.ranking.currentConditions = '桌面端·上海·自然搜索·10:00';
   return day;

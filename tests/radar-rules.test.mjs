@@ -42,8 +42,8 @@ test('missing audience and metric conflict degrade only supported conclusions', 
 
 test('unsupported dates and unavailable comparison baselines never inherit 11-14 facts', () => {
   assert.equal(buildRadarReport('2026-11-18').status, 'unsupported');
-  const day16 = buildRadarReport('2026-11-16');
-  assert.equal(day16.metrics.traffic.actual, 6800);
+  const day16 = buildRadarReport('2026-11-17');
+  assert.equal(day16.metrics.traffic.actual, 7000);
   assert.equal(day16.metrics.traffic.paid, null);
   assert.equal(day16.metrics.transaction.value, null);
   assert.equal(day16.alerts.length, 0);
@@ -71,4 +71,26 @@ test('not-applicable feedback suppresses repeat recommendation for seven days bu
   assert.equal(shouldSuppressRecommendation(feedback, { incidentId: 'INC-UV-GAP', gap: 1000 }, '2026-11-15'), true);
   assert.equal(shouldSuppressRecommendation(feedback, { incidentId: 'INC-UV-GAP', gap: 1600 }, '2026-11-15'), false);
   assert.equal(shouldSuppressRecommendation(feedback, { incidentId: 'INC-UV-GAP', gap: 1000 }, '2026-11-22'), false);
+});
+
+test('processing done never changes an abnormal metric into a recovered metric',()=>{
+  const feedback=[{incidentId:'INC-PAID-GAP',status:'done',sourceDate:'2026-11-14',createdAt:'2026-11-15T09:00:00+08:00'}];
+  const report=buildRadarReport('2026-11-14',{feedback});
+  assert.equal(report.alerts.find(row=>row.kind==='paid').gap,500);
+  const next=buildRadarReport('2026-11-15',{feedback});
+  assert.equal(next.followups.find(row=>row.incidentId==='INC-PAID-GAP').processingStatus,'done');
+  assert.equal(next.followups.find(row=>row.incidentId==='INC-PAID-GAP').currentGap,150);
+});
+
+test('approved sorting can move a handled issue without changing numeric evidence',()=>{
+  const feedback=[{incidentId:'INC-PAID-GAP',status:'done',sourceDate:'2026-11-14'}];
+  const before=buildRadarReport('2026-11-14',{feedback});
+  const after=buildRadarReport('2026-11-14',{feedback,policy:{order:'unresolved_first'}});
+  assert.equal(before.alerts[0].kind,'paid');
+  assert.equal(after.alerts[0].kind,'traffic');
+  assert.deepEqual(before.metrics,after.metrics);
+});
+
+test('conflicting visitor definitions cannot produce a trusted conversion rate',()=>{
+  assert.equal(buildRadarReport('2026-11-14',{scenario:'metric-conflict'}).metrics.transaction.conversion,null);
 });

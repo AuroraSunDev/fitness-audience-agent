@@ -3,6 +3,8 @@ import { analyzeTraffic, buildEvidence, validatePlan } from './data.mjs';
 export const steps = [
   '查询指标定义与数据', '分渠道下钻', '计算预期缺口与贡献', '校验证据并生成结论'
 ];
+let taskSequence = 0;
+let approvalSequence = 0;
 
 export class DiagnosticTask {
   constructor(fixture, plan, question = '大促后流量掉了，是正常回落还是有问题？') {
@@ -16,7 +18,7 @@ export class DiagnosticTask {
     this.evidence = [];
     this.failure = null;
     this.trace = [];
-    this.id = `DEMO-${fixture.scenario.toUpperCase()}-20261114`;
+    this.id = `DX-${plan.date.replaceAll('-', '')}-${Date.now().toString(36)}-${++taskSequence}`;
   }
 
   start() {
@@ -120,13 +122,14 @@ export class DiagnosticTask {
   makeHandoff() {
     if (this.status !== 'stopped') return null;
     return {
-      mock: true, id: `DEMO-HANDOFF-${this.id}`, question: this.question,
+      mock: true, id: `RVW-${this.id.slice(3)}`, status: 'pending', question: this.question,
       plan: { ...this.plan }, completedSteps: steps.slice(0, this.stepIndex),
       evidenceIds: this.trace.filter(item => item.status === 'success').map((_, index) => `T-${index + 1}`),
       reason: this.failure.reason,
       todo: this.failure.code === 'metric_conflict' ? '请数据负责人确认权威 UV 口径与版本。'
         : this.failure.code === 'timeout' ? '请复核未完成的渠道贡献计算与证据。'
-          : '请补齐广告渠道数据并复核归因完整性。'
+          : this.plan.metricId === 'PRODUCT_DETAIL_UV_002' ? '请补齐商品详情页 UV 日值与渠道明细，复核统计范围。'
+            : '请补齐广告渠道数据并复核归因完整性。'
     };
   }
 }
@@ -151,7 +154,7 @@ export class ApprovalFlow {
 
   submit() {
     if (this.status !== 'confirming') return false;
-    this.approvalId = 'DEMO-APP-20261114-001';
+    this.approvalId = `APP-20261114-${String(++approvalSequence).padStart(3, '0')}`;
     this.status = 'pending';
     return true;
   }

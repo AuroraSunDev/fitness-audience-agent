@@ -135,3 +135,9 @@
 .radar-screen .radar-detail+.radar-btn{width:100%}
 .screen{min-height:calc(100vh - 101px)}
 @media(max-width:375px){.radar-screen{padding-left:15px;padding-right:15px}.radar-kpi strong{font-size:18px}.radar-line{grid-template-columns:86px minmax(0,1fr)}.radar-task-form{grid-template-columns:90px minmax(0,1fr)}}
+.radar-data-scope{position:sticky;top:100px;z-index:12;background:#f7f8fa;border:1px solid #e6eaf0;border-radius:9px;padding:10px 12px;margin:0 0 16px}
+.radar-data-scope strong,.radar-data-scope span{display:block;font-size:11px;line-height:1.6}
+.radar-data-scope span{font-size:10px;color:#778390;margin-top:3px}
+.radar-export{display:block;width:100%;background:transparent;border:0;text-align:center;border-top:1px solid #e6eaf0;color:#697584;font-size:12px;padding:18px 0;margin-top:24px;text-decoration:none}
+.diagnosis-origin{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f4f8fb;padding:10px 19px;font-size:11px;color:#61778b}
+.diagnosis-origin button{border:0;background:transparent;color:#315c7f;font-size:11px;white-space:nowrap}

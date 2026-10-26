@@ -28,8 +28,8 @@ test('audience and transaction dimensions do not conflate returning visitors wit
 });
 
 test('uncovered detail and dates stay absent, while metric provenance is explicit', () => {
-  assert.equal(getRadarDay('2026-11-16').traffic.channels, null);
-  assert.equal(getRadarDay('2026-11-16').audience, null);
+  assert.equal(getRadarDay('2026-11-17').traffic.channels, null);
+  assert.equal(getRadarDay('2026-11-17').audience, null);
   assert.equal(getRadarDay('2026-11-18'), null);
   for (const field of ['metricId', 'version', 'unit', 'definition', 'timeWindow', 'source', 'lineage', 'fetchedAt', 'qualityStatus']) assert.ok(radarMetricDictionary.SHOP_UV_001[field]);
   assert.equal(radarMetricDictionary.SHOP_UV_001.version, 'v1.0');

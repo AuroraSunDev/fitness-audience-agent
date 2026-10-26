@@ -1,5 +1,7 @@
 # 作业三｜「每日经营巡检」Skill 产品方案（PRD + 技能契约）
 
+> 历史初版（2026-10-24）。已实施版本以 [每日经营巡检服务设计](superpowers/specs/2026-10-26-daily-inspection-service-design.md)、[设计说明](assignment-3/设计说明.md) 与 [数据字典](assignment-3/mock-data-dictionary.md) 为准。旧文中的“先配置再手动执行”、商家界面教学提示、S8 扩展为全店订阅及 11 月 15–16 日未覆盖四维等设定已被新版替换。
+
 > **产品**：商策 · 商家经营分析 Agent  
 > **能力**：每日经营雷达 / Daily Business Pulse  
 > **文档版本**：v1.0，2026-10-24  

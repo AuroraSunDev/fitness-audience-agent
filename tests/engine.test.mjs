@@ -66,7 +66,7 @@ test('budget request cannot become pending without a second confirmation', () =>
   assert.equal(flow.status, 'confirming');
   assert.equal(flow.submit(), true);
   assert.equal(flow.status, 'pending');
-  assert.match(flow.approvalId, /^DEMO-APP-/);
+  assert.match(flow.approvalId, /^APP-/);
   assert.equal(flow.executed, false);
   flow.approveDemo();
   assert.equal(flow.status, 'approved_mock');
@@ -82,4 +82,5 @@ test('cancelled and rejected approval requests never execute', () => {
   rejected.openConfirmation(); rejected.submit(); rejected.rejectDemo();
   assert.equal(rejected.status, 'rejected_mock');
   assert.equal(rejected.executed, false);
+  assert.notEqual(cancelled.approvalId, rejected.approvalId);
 });

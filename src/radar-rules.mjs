@@ -1,4 +1,5 @@
-import { getRadarDay, radarMetricDictionary, RADAR_DOMAINS } from './radar-data.mjs';
+import { radarMetricDictionary, RADAR_DOMAINS } from './radar-data.mjs';
+import { queryTraffic, queryCustomers, queryTransactions, queryRanking } from './radar-tools.mjs';
 
 const fmt = value => Number(value).toLocaleString('zh-CN');
 const pct = ratio => `${Number((ratio * 100).toFixed(1))}%`;
@@ -26,21 +27,30 @@ function makeAlert(day, kind, priority, title, gap, threshold, evidenceCard, act
 
 export function shouldSuppressRecommendation(feedback, alert, reportDate) {
   if (!feedback || feedback.status !== 'not_applicable' || feedback.incidentId !== alert.incidentId) return false;
+  if ((feedback.sourceDate || feedback.createdAt?.slice(0,10) || '') > reportDate) return false;
   if (Date.parse(`${reportDate}T09:00:00+08:00`) >= Date.parse(feedback.expiresAt)) return false;
   return alert.gap <= (feedback.gapAtFeedback || 0) * 1.25;
 }
 
-export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DOMAINS, feedback = [] } = {}) {
-  const day = getRadarDay(date, scenario);
-  if (!day) return { status: 'unsupported', date, reason: '该日期暂无可用数据，请选择其他日期。' };
+export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DOMAINS, feedback = [], readers = { traffic: queryTraffic, audience: queryCustomers, transaction: queryTransactions, ranking: queryRanking }, snapshots = null, policy = {}, version = '1.0.0' } = {}) {
+  feedback = feedback.filter(item => (item.sourceDate || item.createdAt?.slice(0,10) || '') <= date);
   const selected = [...new Set(domains)].filter(domain => RADAR_DOMAINS.includes(domain));
   if (!selected.length) return { status: 'unsupported', date, reason: '至少选择一个巡检维度。' };
+  const results = snapshots || Object.fromEntries(selected.map(domain => [domain, readers[domain]({ date }, { scenario })]));
+  const meta = Object.values(results)[0];
+  if (!meta?.shopId) return { status: 'unsupported', date, reason: meta?.reason || '该日期暂无可用数据，请选择其他日期。' };
+  const day = { ...meta, quality: {}, traffic: { actual: results.transaction?.data?.visitors || results.audience?.data?.totalVisitors } };
+  for (const domain of selected) { day[domain] = results[domain]?.data; day.quality[domain] = results[domain]?.quality || 'unavailable'; }
   const metrics = {};
   const alerts = [];
   const missing = [];
 
   if (selected.includes('traffic')) {
     const traffic = day.traffic;
+    if (!traffic) {
+      metrics.traffic = { value: null, quality: 'missing', note: '店铺访客数据尚未更新，暂无法判断流量变化。', evidence: null };
+      missing.push('流量');
+    } else {
     const conflict = day.quality.traffic === 'conflict';
     const gap = conflict || traffic.expected == null ? null : traffic.expected - traffic.actual;
     const channels = traffic.channels;
@@ -64,6 +74,7 @@ export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DO
     if (conflict) missing.push('流量口径冲突');
     if (!conflict && gap >= 200 && gap / traffic.expected >= .1) alerts.push(makeAlert(day, 'traffic', 2, '店铺 UV 低于参考预期', gap, '相对下降 ≥10% 且绝对缺口 ≥200 人', evidence(day, 'SHOP_UV_001', traffic.actual, traffic.expected), '核查主要来源变化，先分清正常回落与额外缺口。'));
     if (paid && paid.gap >= 200 && paid.gapRatio >= .15) alerts.push(makeAlert(day, 'paid', 1, '付费渠道流量需优先排查', paid.gap, '相对下降 ≥15% 且绝对缺口 ≥200 人', evidence(day, 'SHOP_UV_001', paid.actual, paid.expected, { dimension: 'paid', domain: 'traffic', contribution: paid.contribution }), '先检查广告计划状态、预算受限与曝光；不要直接调预算。'));
+    }
   }
 
   if (selected.includes('audience')) {
@@ -71,7 +82,7 @@ export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DO
     metrics.audience = audience ? {
       value: audience.newVisitors, newVisitors: audience.newVisitors, returningVisitors: audience.returningVisitors,
       quality: 'complete', note: '新访客与回访访客互斥；与老客主来源渠道是不同维度。暂无可比基线，不判异常。',
-      evidence: evidence(day, 'NEW_VISITORS_001', audience.newVisitors, day.traffic.actual, { domain: 'audience' })
+      evidence: evidence(day, 'NEW_VISITORS_001', audience.newVisitors, audience.totalVisitors ?? '待更新', { domain: 'audience' })
     } : { value: null, quality: day.quality.audience, note: '当日用户分层未覆盖；不可判断结构变化。', evidence: null };
     if (!audience) missing.push('用户');
   }
@@ -79,8 +90,8 @@ export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DO
   if (selected.includes('transaction')) {
     const tx = day.transaction;
     metrics.transaction = tx ? {
-      value: tx.gmv, buyers: tx.buyers, orders: tx.orders, aov: tx.aov, conversion: tx.buyers / day.traffic.actual,
-      quality: 'complete', note: '教学设定每位买家一单；暂无交易可比基线，不判异常。',
+      value: tx.gmv, buyers: tx.buyers, orders: tx.orders, aov: tx.aov, conversion: tx.visitorsQuality !== 'complete' || !(tx.visitors > 0) ? null : tx.buyers / tx.visitors,
+      quality: 'complete', note: '支付金额未扣退款；暂无交易可比基线，不判异常。',
       evidence: evidence(day, 'PAID_GMV_001', tx.gmv, tx.orders, { domain: 'transaction' })
     } : { value: null, quality: 'unavailable', note: '当日交易明细未覆盖；不可判断变化。', evidence: null };
     if (!tx) missing.push('交易');
@@ -101,7 +112,8 @@ export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DO
     if (comparable && delta >= 5) alerts.push(makeAlert(day, 'ranking', 3, '关键词排名下降，待核验', delta, '同条件排名下降 ≥5 位', metrics.ranking.evidence, '核验搜索曝光、点击与商品可售状态。', '待核验'));
   }
 
-  alerts.sort((a, b) => a.priority - b.priority);
+  const handled = id => ['done','not_applicable'].includes(feedback.find(item => item.incidentId === id)?.status);
+  alerts.sort((a, b) => (policy.order === 'unresolved_first' ? Number(handled(a.incidentId)) - Number(handled(b.incidentId)) : 0) || a.priority - b.priority);
   const tasks = alerts.filter(alert => !feedback.some(item => shouldSuppressRecommendation(item, alert, date))).map(alert => ({
     taskId: `TASK-${alert.alertInstanceId}`, incidentId: alert.incidentId, alertInstanceId: alert.alertInstanceId,
     title: alert.action, status: 'pending', gap: alert.gap
@@ -111,15 +123,28 @@ export function buildRadarReport(date, { scenario = 'normal', domains = RADAR_DO
   if (traffic?.quality === 'conflict') summary = '店铺 UV 口径冲突，流量缺口和渠道贡献待人工确认；其他已覆盖维度仅作观察。';
   else if (traffic?.gap != null && traffic.gap > 0) summary = `${date.slice(5)} 店铺 UV 比参考预期少 ${fmt(traffic.gap)}（-${pct(traffic.gapRatio)}）${traffic.paid ? `，付费渠道缺口 ${fmt(traffic.paid.gap)}、占总缺口 ${pct(traffic.paid.contribution)}` : ''}；正常回落和额外缺口要区分，尚不能断言因果。`;
   else if (traffic?.gap != null) summary = `${date.slice(5)} 店铺 UV ${fmt(traffic.actual)}，参考预期 ${fmt(traffic.expected)}；未达到流量异常阈值。`;
-  const previousGap = date === '2026-11-15' ? 1000 : date === '2026-11-16' ? 400 : null;
+  if (policy.wording === 'action_first' && alerts[0]) summary = `${alerts[0].action} ${summary}`;
+  const previousDate = new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0,10);
+  const previousTraffic = date > '2026-11-14' && metrics.traffic?.quality === 'complete' ? queryTraffic({ date: previousDate }).data : null;
+  const previousGap = previousTraffic?.expected == null ? null : previousTraffic.expected - previousTraffic.actual;
   const followup = previousGap == null ? null : {
-    incidentId: 'INC-UV-GAP', previousDate: date === '2026-11-15' ? '2026-11-14' : '2026-11-15',
+    incidentId: 'INC-UV-GAP', previousDate,
     previousGap, currentGap: day.traffic.expected - day.traffic.actual,
     disclaimer: '观察到差距收窄不等于证明处理动作造成恢复；仍需独立验证。'
   };
+  const followups = [];
+  if (followup) {
+    followups.push({ ...followup, title: '店铺访客缺口', processingStatus: feedback.find(item => item.incidentId === 'INC-UV-GAP')?.status || 'pending', recoveryStatus: traffic.gap >= 200 && traffic.gapRatio >= .1 ? 'ongoing' : 'within_range' });
+    if (traffic.paid && previousTraffic.channels?.paid) followups.push({ incidentId: 'INC-PAID-GAP', title: '付费渠道缺口', previousGap: previousTraffic.channels.paid.expected - previousTraffic.channels.paid.actual, currentGap: traffic.paid.gap,
+      processingStatus: feedback.find(item => item.incidentId === 'INC-PAID-GAP')?.status || 'pending', recoveryStatus: traffic.paid.gap >= 200 && traffic.paid.gapRatio >= .15 ? 'ongoing' : 'within_range' });
+    for (const item of followups) if (!tasks.some(task => task.incidentId === item.incidentId) && !feedback.some(row => shouldSuppressRecommendation(row, { incidentId: item.incidentId, gap: item.currentGap }, date))) tasks.push({
+      taskId: `TASK-${item.incidentId}-${date}`, incidentId: item.incidentId, title: `跟进${item.title}，核实处理进展与后续变化。`, gap: item.currentGap, status: item.processingStatus
+    });
+  }
   return {
     shopId: day.shopId, shopName: day.shopName, date, simulatedRunAt: `${nextDate(date)} 09:00 Asia/Shanghai`, mock: true,
     status: missing.length ? 'partial' : 'complete', completeness: `${selected.length - missing.length}/${selected.length}`,
-    selectedDomains: selected, missing, metrics, alerts, tasks, followup, summary
+    selectedDomains: selected, missing, metrics, alerts, tasks, followup, followups, summary, version,
+    reportId: `REPORT-${date}-${selected.join('-')}-${version}`
   };
 }
