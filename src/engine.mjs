@@ -3,6 +3,8 @@ import { analyzeTraffic, buildEvidence, validatePlan } from './data.mjs';
 export const steps = [
   '查询指标定义与数据', '分渠道下钻', '计算预期缺口与贡献', '校验证据并生成结论'
 ];
+let taskSequence = 0;
+let approvalSequence = 0;
 
 export class DiagnosticTask {
   constructor(fixture, plan, question = '大促后流量掉了，是正常回落还是有问题？') {
@@ -16,7 +18,7 @@ export class DiagnosticTask {
     this.evidence = [];
     this.failure = null;
     this.trace = [];
-    this.id = `DEMO-${fixture.scenario.toUpperCase()}-20261114`;
+    this.id = `DX-${plan.date.replaceAll('-', '')}-${Date.now().toString(36)}-${++taskSequence}`;
   }
 
   start() {
@@ -57,7 +59,7 @@ export class DiagnosticTask {
       const unsupported = validatePlan(this.plan);
       if (unsupported) {
         this.record('get_metric_def', 'error', 'unsupported');
-        this.stop('unsupported', unsupported, '查询尚未执行。', '当前条件不在 Mock 数据覆盖范围。');
+        this.stop('unsupported', unsupported, '查询尚未执行。', '当前条件暂无可用数据。');
         return false;
       }
       this.record('get_metric_def', 'success');
@@ -94,7 +96,7 @@ export class DiagnosticTask {
     if (this.stepIndex === 2) {
       if (this.fixture.scenario === 'timeout') {
         this.record('run_attribution', 'timeout', 'mock_timeout');
-        this.stop('timeout', '贡献计算达到演示时限，任务已停止。',
+        this.stop('timeout', '渠道贡献计算超时，任务已停止。',
           '已确认店铺 UV 下降 4,000 人，且付费广告低于参考预期 500 人。',
           '完整渠道贡献与证据校验尚未完成，不能输出最终排序。');
         return false;
@@ -120,13 +122,14 @@ export class DiagnosticTask {
   makeHandoff() {
     if (this.status !== 'stopped') return null;
     return {
-      mock: true, id: `DEMO-HANDOFF-${this.id}`, question: this.question,
+      mock: true, id: `RVW-${this.id.slice(3)}`, status: 'pending', question: this.question,
       plan: { ...this.plan }, completedSteps: steps.slice(0, this.stepIndex),
       evidenceIds: this.trace.filter(item => item.status === 'success').map((_, index) => `T-${index + 1}`),
       reason: this.failure.reason,
       todo: this.failure.code === 'metric_conflict' ? '请数据负责人确认权威 UV 口径与版本。'
         : this.failure.code === 'timeout' ? '请复核未完成的渠道贡献计算与证据。'
-          : '请补齐广告渠道数据并复核归因完整性。'
+          : this.plan.metricId === 'PRODUCT_DETAIL_UV_002' ? '请补齐商品详情页 UV 日值与渠道明细，复核统计范围。'
+            : '请补齐广告渠道数据并复核归因完整性。'
     };
   }
 }
@@ -151,7 +154,7 @@ export class ApprovalFlow {
 
   submit() {
     if (this.status !== 'confirming') return false;
-    this.approvalId = 'DEMO-APP-20261114-001';
+    this.approvalId = `APP-20261114-${String(++approvalSequence).padStart(3, '0')}`;
     this.status = 'pending';
     return true;
   }
