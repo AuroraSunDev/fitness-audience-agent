@@ -14,7 +14,6 @@ main 只包含经营诊断及其保存/订阅卡；每日巡检平台仍单独�
 
 - [当前八屏及补充状态截图](docs/assignment-2/screenshots/)
 - [一页设计说明（PDF）](docs/设计说明.pdf) · [HTML 源版](docs/设计说明.html)
-- [三条走查发现及修复](docs/走查记录.md)
 - [按 S1–S8 和五项评分维度的自查报告](docs/assignment-2/自查报告.md)
 
 | 屏幕 | 主要内容 |
