@@ -10,6 +10,7 @@ test('11-14 keeps the assignment-two store UV and mutually exclusive source tota
   assert.equal(Object.values(day.traffic.channels).reduce((sum, row) => sum + row.actual, 0), 6000);
   assert.equal(Object.values(day.traffic.channels).reduce((sum, row) => sum + row.expected, 0), 7000);
   assert.deepEqual([day.traffic.channels.paid.actual, day.traffic.channels.paid.expected], [800, 1300]);
+  assert.equal(day.fetchedAt, '2026-11-15 08:45:00 Asia/Shanghai');
 });
 
 test('11-15 source breakdown conserves the dated store total', () => {

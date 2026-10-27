@@ -59,6 +59,15 @@ test('changing dates updates the report and never offers unsupported diagnostic 
   assert.doesNotMatch(ui.render(), /data-radar="continue-diagnosis"/);
 });
 
+test('date selection opens a calendar and export stops at the selected day',()=>{
+  const ui=createUI();
+  assert.deepEqual(ui.reportsForExport().map(report=>report.date),['2026-11-12','2026-11-13','2026-11-14']);
+  assert.match(ui.render(),/data-radar="toggle-calendar"/);
+  ui.handle('toggle-calendar');
+  assert.match(ui.render(),/date-calendar/);
+  assert.match(ui.render(),/data-radar="calendar-2026-11-13"/);
+});
+
 test('all metric and alert details retain evidence in merchant language', () => {
   const ui = createUI();
   for (const id of ['traffic','audience','transaction','ranking']) {
@@ -151,9 +160,9 @@ test('export prefers saved historical snapshots and keeps the selected date sepa
   ui.memory.shadowCompare(proposal.id);ui.memory.review(proposal.id,'approve');
   ui.date='2026-11-16';
   const reports=ui.reportsForExport();
-  assert.equal(reports[0].summary,'保留的历史结论');
-  assert.equal(reports[0].version,'1.0.0');
-  assert.equal(reports[2].date,'2026-11-16');
+  assert.equal(reports.find(report=>report.date==='2026-11-14').summary,'保留的历史结论');
+  assert.equal(reports.find(report=>report.date==='2026-11-14').version,'1.0.0');
+  assert.equal(reports.at(-1).date,'2026-11-16');
 });
 
 test('a new governed run gets a distinct version key and does not overwrite the old report',()=>{

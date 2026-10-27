@@ -4,13 +4,14 @@ import { editRadarSkill, enableRadarSkill, makeRunKey, RadarRun, saveRadarSkill 
 import { RadarMemory } from './radar-memory.mjs';
 import { recordActionFeedback } from './radar-tools.mjs';
 import { createReportHtml } from './report-export.mjs';
+import { renderDateCalendar } from './date-calendar.mjs';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const num = value => Number(value).toLocaleString('zh-CN');
 const percent = ratio => `${Number((ratio * 100).toFixed(1))}%`;
 const domains = { traffic: '流量', audience: '用户', transaction: '交易', ranking: '搜索排名' };
 const statuses = { pending: '待处理', done: '已处理', deferred: '暂缓', not_applicable: '不适用' };
-const dates = ['2026-11-14', '2026-11-15', '2026-11-16'];
+const dates = ['2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15', '2026-11-16'];
 const btn = (label, action, secondary = false, attrs = '') => `<button class="radar-btn ${secondary ? 'is-secondary' : ''}" data-radar="${action}" ${attrs}>${label}</button>`;
 const line = (label, value) => `<div class="radar-line"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 const scrollPosition = () => typeof window === 'undefined' ? 0 : window.scrollY;
@@ -21,7 +22,7 @@ export class RadarUI {
     this.memory = new RadarMemory(storage);
     this.onRender = onRender; this.onContinueDiagnosis = onContinueDiagnosis;
     this.page = 'report'; this.date = '2026-11-14'; this.scenario = 'normal';
-    this.selectedMetric = 'traffic'; this.selectedAlert = null; this.notice = '';
+    this.selectedMetric = 'traffic'; this.selectedAlert = null; this.notice = ''; this.calendarOpen = false;
     this.activeRun = null; this.timer = null; this.navigation = []; this.restoreScroll = null;
   }
 
@@ -43,7 +44,7 @@ export class RadarUI {
     this.restoreScroll = previous.scroll; this.notice = ''; this.onRender(); return true;
   }
 
-  selectDate(date) { if (dates.includes(date)) this.open('report', { date, selectedMetric: 'traffic', selectedAlert: null }); }
+  selectDate(date) { if (dates.includes(date)) { this.calendarOpen = false; this.open('report', { date, selectedMetric: 'traffic', selectedAlert: null }); } }
   selectMetric(metric) { if (RADAR_DOMAINS.includes(metric)) this.open('metric', { selectedMetric: metric, selectedAlert: null }); }
   selectAlert(id) { this.open('alert', { selectedAlert: id }); }
 
@@ -65,7 +66,8 @@ export class RadarUI {
   }
 
   reportsForExport() {
-    return dates.map(date => this.persistedReport(date)?.report || buildRadarReport(date, { scenario: this.scenario, domains: this.memory.config.domains, feedback: this.memory.feedbackAt(date), policy: this.memory.governance.policy, version: this.memory.governance.version }));
+    const first = new Date(Date.parse(`${this.date}T00:00:00Z`) - 2 * 86400000).toISOString().slice(0, 10);
+    return dates.filter(date => date >= first && date <= this.date).map(date => this.persistedReport(date)?.report || buildRadarReport(date, { scenario: this.scenario, domains: this.memory.config.domains, feedback: this.memory.feedbackAt(date), policy: this.memory.governance.policy, version: this.memory.governance.version }));
   }
 
   get report() {
@@ -100,7 +102,7 @@ export class RadarUI {
     const first = report.alerts[0];
     const headline = first?.kind === 'paid' ? '优先检查付费广告计划' : first?.kind === 'traffic' ? '店铺访客低于参考预期' : first?.kind === 'ranking' ? '搜索排名有下降，建议核查' : traffic?.quality === 'conflict' ? '流量数据需要核对' : report.followup ? '流量差距正在收窄' : '关注最新经营表现';
     const summary = traffic?.gap != null ? `店铺访客 ${num(traffic.actual)}，较参考预期少 ${num(traffic.gap)}（${percent(traffic.gapRatio)}）。${traffic.paid ? `其中付费渠道少 ${num(traffic.paid.gap)}，占总缺口 ${percent(traffic.paid.contribution)}。` : ''}` : report.summary;
-    return `<div class="radar-report-heading"><p class="radar-shop">${esc(report.shopName)}</p><h1>经营巡检日报</h1><div class="radar-report-meta"><button class="radar-date-button" data-radar="page-history">${report.date.slice(5).replace('-', '月')}日 <span>⌄</span></button><span>${report.simulatedRunAt.slice(5,16)} 更新</span><button class="radar-refresh" data-radar="refresh-report" aria-label="更新日报">↻</button></div></div>
+    return `<div class="radar-report-heading"><p class="radar-shop">${esc(report.shopName)}</p><h1>经营巡检日报</h1><div class="radar-report-meta"><button class="radar-date-button" data-radar="toggle-calendar" aria-expanded="${this.calendarOpen}">${report.date.slice(5).replace('-', '月')}日 <span>▾</span></button><span>${report.simulatedRunAt.slice(5,16)} 更新</span><button class="radar-refresh" data-radar="refresh-report" aria-label="更新日报">↻</button></div>${this.calendarOpen ? renderDateCalendar(this.date, dates, 'data-radar', 'calendar-') : ''}</div>
       <div class="radar-data-scope"><strong>数据范围 ${report.date} · 00:00–24:00</strong><span>本店已授权数据 · ${report.completeness} 项已覆盖 · ${report.simulatedRunAt.slice(5,16)} 更新</span></div>
       <div class="radar-subscription-strip"><div><strong>${c.enabled ? '每日巡检已开启' : '每天开店前，先看清经营重点'}</strong><small>${c.enabled ? `${c.frequency === 'daily' ? '每天' : '每周六'} ${String(c.hour).padStart(2,'0')}:00 · ${c.domains.map(id => domains[id]).join('、')}` : '默认每天 09:00 检查昨日四维数据，重要变化时提醒'}</small></div><button data-radar="${c.enabled ? 'page-settings' : 'enable-default'}">${c.enabled ? '巡检设置' : '开启每日巡检'} →</button></div>
       <div class="radar-summary"><span>今日重点</span><h2>${headline}</h2><p>${esc(summary)}</p></div>${report.missing.length ? `<div class="radar-warning">${report.missing.map(esc).join('、')}数据待补充，相关变化暂无法判断。</div>` : ''}
@@ -211,6 +213,8 @@ export class RadarUI {
 
   handle(action, root, element) {
     this.notice = '';
+    if (action === 'toggle-calendar') { this.calendarOpen = !this.calendarOpen; this.onRender(); return true; }
+    if (action.startsWith('calendar-')) { this.selectDate(action.slice(9)); return true; }
     if (action.startsWith('page-')) { this.open(action.slice(5)); return true; }
     if (action.startsWith('history-')) { this.selectDate(action.slice(8)); return true; }
     if (action.startsWith('metric-')) { this.selectMetric(action.slice(7)); return true; }

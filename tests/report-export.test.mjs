@@ -39,3 +39,12 @@ test('export opens the requested report date and selects feedback by effective d
   assert.equal(selectReportFeedback(feedback,'2026-11-14')[0].status,'deferred');
   assert.equal(selectReportFeedback(feedback,'2026-11-16')[0].status,'done');
 });
+
+test('a selected date only charts that day and the preceding two days',()=>{
+  const reports=['2026-11-12','2026-11-13','2026-11-14','2026-11-15','2026-11-16'].map(date=>buildRadarReport(date));
+  assert.deepEqual(getReportMetricSeries(reports,'traffic','2026-11-14').map(point=>point.date),['2026-11-12','2026-11-13','2026-11-14']);
+  const html=createReportHtml(reports,[],{selectedDate:'2026-11-14'});
+  const payload=JSON.parse(html.match(/<script type="application\/json" id="report-data">(.*?)<\/script>/s)[1]);
+  assert.deepEqual(payload.reports.map(report=>report.date),['2026-11-12','2026-11-13','2026-11-14']);
+  assert.match(html,/date-calendar/);
+});

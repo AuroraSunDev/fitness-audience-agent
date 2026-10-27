@@ -54,5 +54,16 @@ button:disabled{cursor:not-allowed;opacity:.55}
 .approval-receipt strong{font-size:12px;word-break:break-word}
 .approval-receipt span{font-size:11px;white-space:nowrap}
 
+.plan-date-button{width:100%;border:1px solid #ccd2dc;border-radius:7px;background:#fff;padding:8px 10px;color:var(--ink);text-align:left;font-size:12px}
+.date-calendar{width:min(100%,300px);background:#fff;border:1px solid var(--line);border-radius:11px;padding:14px;box-shadow:0 12px 28px rgba(19,26,36,.12);margin:8px 0 14px;position:relative;z-index:2}
+.date-calendar>strong{display:block;font-size:13px;margin-bottom:10px}
+.date-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.date-calendar-grid>span,.date-calendar-grid>button{height:34px;display:grid;place-items:center;font-size:12px}
+.date-calendar-weekday{color:#84909d}
+.date-calendar-grid>button{border:0;border-radius:7px;background:#fff;color:#344150}
+.date-calendar-grid>button:hover:not(:disabled){background:#fff0ee;color:var(--red)}
+.date-calendar-grid>button.selected{background:var(--red);color:#fff}
+.date-calendar-grid>button:disabled{color:#c1c8d0;background:transparent;opacity:1}
+
 .screen{min-height:calc(100vh - 58px)}
 .rail-saved-button{margin-top:24px;border:0;background:#fff;color:#e2231a;border-radius:8px;padding:12px 14px;font-size:12px;font-weight:700}

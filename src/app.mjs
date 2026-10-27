@@ -2,6 +2,7 @@ import { analyzeTraffic, buildEvidence, defaultPlan, getFixture, getSuggestedQue
 import { ApprovalFlow, DiagnosticTask, steps } from './engine.mjs';
 import { DiagnosisHistory } from './diagnosis-history.mjs';
 import { RadarUI } from './radar-ui.mjs';
+import { renderDateCalendar } from './date-calendar.mjs';
 
 const root = document.getElementById('app');
 const number = value => Number(value).toLocaleString('zh-CN');
@@ -9,7 +10,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&a
 const state = {
   section: new URLSearchParams(location.search).get('view') === 'daily' ? 'radar' : 'diagnosis', sourceReport: null,
   screen: 's1', scenario: 'normal', question: '', plan: { ...defaultPlan },
-  editingPlan: false, notice: '', task: null, approval: new ApprovalFlow(),
+  editingPlan: false, planCalendarOpen: false, notice: '', task: null, approval: new ApprovalFlow(),
   handoff: null, watchFrequency: 'daily', watchHour: 9, watchEditing: false
 };
 const diagnosisHistory = new DiagnosisHistory(localStorage);
@@ -86,7 +87,8 @@ function renderS2() {
     <div class="section-head"><h2>本次查询计划</h2><button class="text-button" data-action="edit-plan">${editing ? '完成修改' : '修改计划'}</button></div>
     <div class="plan-list">
       ${planRow('分析指标', editing ? `<select name="metricId" aria-label="分析指标"><option value="SHOP_UV_001" ${plan.metricId === 'SHOP_UV_001' ? 'selected' : ''}>店铺去重访客 UV</option><option value="PRODUCT_DETAIL_UV_002" ${plan.metricId === 'PRODUCT_DETAIL_UV_002' ? 'selected' : ''}>商品详情页 UV</option></select>` : esc(metricDefinitions[plan.metricId]?.name || plan.metricId), '按日统计去重访客')}
-      ${planRow('分析日期', editing ? `<select name="date" aria-label="分析日期"><option value="2026-11-14" ${plan.date === '2026-11-14' ? 'selected' : ''}>2026-11-14</option><option value="2026-11-13" ${plan.date === '2026-11-13' ? 'selected' : ''}>2026-11-13</option></select>` : esc(plan.date), '00:00–24:00 · 北京时间')}
+      ${planRow('分析日期', editing ? `<button class="plan-date-button" data-action="toggle-plan-calendar" aria-expanded="${state.planCalendarOpen}">${esc(plan.date)} ▾</button>` : esc(plan.date), '00:00–24:00 · 北京时间')}
+      ${editing && state.planCalendarOpen ? renderDateCalendar(plan.date, ['2026-11-13','2026-11-14'], 'data-action', 'plan-date-') : ''}
       ${planRow('峰值对比', '2026-11-11', '11.11 当日店铺 UV')}
       ${planRow('参考基线', '历史相似活动预期', '用于区分大促正常回落与额外缺口')}
       ${planRow('下钻维度', editing ? `<select name="dimension" aria-label="下钻维度"><option value="primary_source" ${plan.dimension === 'primary_source' ? 'selected' : ''}>全部主来源渠道</option><option value="paid_only" ${plan.dimension === 'paid_only' ? 'selected' : ''}>仅付费广告</option><option value="sku" ${plan.dimension === 'sku' ? 'selected' : ''}>SKU（无数据）</option></select>` : plan.dimension === 'paid_only' ? '仅付费广告' : '全部主来源渠道', '付费广告 / 自然 / 活动 / 老客；互斥归属')}
@@ -250,7 +252,12 @@ root.addEventListener('click', event => {
     state.question = getSuggestedQuestions(getFixture(state.scenario))[Number(action.split('-')[1])];
     state.screen = 's2'; state.notice = '';
   } else if (action === 'edit-plan') {
-    state.editingPlan = !state.editingPlan; state.notice = '';
+    state.editingPlan = !state.editingPlan; state.planCalendarOpen = false; state.notice = '';
+  } else if (action === 'toggle-plan-calendar') {
+    state.planCalendarOpen = !state.planCalendarOpen;
+  } else if (action.startsWith('plan-date-')) {
+    state.plan.date = action.slice(10); state.planCalendarOpen = false;
+    state.notice = validatePlan(state.plan) || '计划已更新；执行后将按当前选择重新取数。';
   } else if (action === 'confirm-plan') {
     const error = validatePlan(state.plan);
     if (error) { state.notice = error; render(); return; }
@@ -304,6 +311,7 @@ root.addEventListener('click', event => {
     else state.screen = 's1';
   }
   render();
+  if (action === 'toggle-plan-calendar' && state.planCalendarOpen) root.querySelector('.date-calendar')?.scrollIntoView({ block: 'center', behavior: 'instant' });
 });
 
 root.addEventListener('change', event => {
@@ -313,7 +321,7 @@ root.addEventListener('change', event => {
     clearTimeout(tickTimer);
     state.scenario = value; state.screen = 's1'; state.plan = { ...defaultPlan };
     state.question = ''; state.task = null; state.approval = new ApprovalFlow();
-    state.handoff = null; state.notice = ''; state.editingPlan = false;
+    state.handoff = null; state.notice = ''; state.editingPlan = false; state.planCalendarOpen = false;
   } else if (['metricId', 'date', 'dimension'].includes(name)) {
     state.plan[name] = value;
     state.notice = validatePlan(state.plan) || '计划已更新；执行后将按当前选择重新取数。';

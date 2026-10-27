@@ -59,7 +59,7 @@ export function getRadarDay(date, scenario = 'normal') {
   if (!row) return null;
   const day = {
     shopId: RADAR_SHOP_ID, shopName: RADAR_SHOP_NAME, date,
-    timezone: 'Asia/Shanghai', fetchedAt: `${date} 10:32:00 Asia/Shanghai`, mock: true,
+    timezone: 'Asia/Shanghai', fetchedAt: `${new Date(Date.parse(`${date}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)} 08:45:00 Asia/Shanghai`, mock: true,
     traffic: { actual: row.actual, expected: row.expected, peak: 10000, channels: row.channels ? structuredClone(row.channels) : null },
     audience: row.audience ? { ...row.audience } : null,
     transaction: row.transaction ? { ...row.transaction } : null,
