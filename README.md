@@ -8,9 +8,9 @@
 
 证据不足路径：在证据页点击「改用此口径重新分析」，选择商品详情页 UV 并确认，即可看到具体缺失部分，选择调整口径或转人工复核。人工复核保留单号与待处理状态。保存的分析可在入口重新打开。
 
-main 只包含经营诊断及其保存/订阅卡；每日巡检平台仍单独保留在 `feat/daily-business-pulse`，没有合入 main。
+经营诊断与每日巡检现已统一在 `main`；默认进入经营诊断，使用 `?view=daily` 可直接查看巡检日报。
 
-## 每日巡检（功能分支）
+## 每日巡检
 
 打开 `?view=daily` 直接查看动燃健身旗舰店的经营日报。商家路径为：开启每日巡检 → 四维日报 → 异常证据 → 记录处理或继续经营诊断 → 返回原日报 → 次日跟进。日报可下载为独立、可交互的 HTML 文件。设置页支持暂停、恢复和提醒方式调整。
 
@@ -24,7 +24,7 @@ main 只包含经营诊断及其保存/订阅卡；每日巡检平台仍单独�
 - [新版截图](docs/assignment-3/screenshots-v2/)
 - [独立交互式经营日报](docs/assignment-3/经营巡检日报.html)
 
-当前 GitHub Pages 仍从 `main` 发布经营诊断；每日巡检只在功能分支。无需安装依赖，本地运行 `python3 -m http.server 4174` 后访问 `http://127.0.0.1:4174/?view=daily`。内部规则维护入口为 `/governance.html`，不出现在商家导航。
+GitHub Pages 从 `main` 发布：[查看每日巡检](https://aurorasundev.github.io/fitness-audience-agent/?view=daily)。本地预览无需安装依赖，运行 `python3 -m http.server 4174` 后访问 `http://127.0.0.1:4174/?view=daily`。内部规则维护入口为 `/governance.html`，不出现在商家导航。
 
 ## 交付物
 
