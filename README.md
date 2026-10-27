@@ -16,6 +16,8 @@ main 只包含经营诊断及其保存/订阅卡；每日巡检平台仍单独�
 
 全店四维巡检与 S8 保存的诊断专项关注分别管理。专项关注仅跟进原诊断的流量范围，不自动开启全店订阅。
 
+- [每日经营巡检技能卡](.hermes/skills/daily-business-pulse/SKILL.md)
+- [每日经营巡检产品汇报](docs/assignment-3/每日经营巡检-内部产品汇报.md)
 - [每日巡检设计说明](docs/assignment-3/设计说明.md)
 - [数据与指标口径](docs/assignment-3/mock-data-dictionary.md)
 - [三条走查问题及修复](docs/assignment-3/走查记录.md)
