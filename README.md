@@ -2,6 +2,10 @@
 
 面向中小商家店长，围绕 11.11 后第 3 天的经营问题「大促后流量掉了，是正常回落还是有问题？」提供完整诊断体验。手机为主，桌面辅助查看。
 
+## 库存预警
+
+[打开库存预警 Agent](https://aurorasundev.github.io/fitness-audience-agent/inventory.html)：库存总览 → 预警 → SKU 详情 → 证据 → 归因 → 建议 → 审批，并提供对话查询与异常状态。设计规则见 [库存预警主链路设计说明](docs/inventory-agent/库存预警主链路设计说明.md)。
+
 ## 体验
 
 打开 [商策经营诊断](https://aurorasundev.github.io/fitness-audience-agent/)，选择问法 → 确认或修改查询计划 → 查看分步进展 → 获取结论与处理建议。可中断后继续，展开证据比较两种口径，进入预算申请与二次确认，或保存本次诊断并订阅流量巡检。
