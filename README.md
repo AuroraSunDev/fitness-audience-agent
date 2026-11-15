@@ -4,7 +4,7 @@
 
 ## 库存预警
 
-[打开库存预警 Agent](https://aurorasundev.github.io/fitness-audience-agent/inventory.html)：库存总览 → 预警 → SKU 详情 → 证据 → 归因 → 建议 → 审批，并提供对话查询与异常状态。设计规则见 [库存预警主链路设计说明](docs/inventory-agent/库存预警主链路设计说明.md)，验证范围见 [走查记录](docs/inventory-agent/走查记录.md)。
+[打开库存预警 Agent](https://aurorasundev.github.io/fitness-audience-agent/inventory.html)：库存总览 → 预警 → SKU 详情 → 证据 → 归因 → 建议 → 审批，并提供对话查询与异常状态。设计说明提供 [一页版](docs/inventory-agent/库存预警主链路设计说明.md) 和 [详细版](docs/inventory-agent/库存预警主链路设计说明-详细版.md)，验证范围见 [走查记录](docs/inventory-agent/走查记录.md)。
 
 ## 体验
 
